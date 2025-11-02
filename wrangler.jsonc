@@ -6,7 +6,7 @@
 	"compatibility_date": "2025-11-02",
 	"routes": [
 		{
-			"pattern": "redirect.samhacker.xyz",
+			"pattern": "api.samhacker.xyz",
 			"zone_name": "samhacker.xyz",
 			"custom_domain": true
 		}
