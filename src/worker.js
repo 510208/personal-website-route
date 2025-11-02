@@ -19,31 +19,39 @@ export default {
 			const module = await import('./routes/wakatime.js');
 			return module.default.fetch(request, env, ctx);
 		}
+		if (url.pathname.startsWith('/rick')) {
+			const module = await import('./routes/rick.js');
+			return module.default.fetch(request, env, ctx);
+		}
+		if (url.pathname == '/') {
+			// 預設回傳個人資訊
+			const taipeiYear = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Taipei', year: 'numeric' }).format(new Date()));
 
-		// 預設回傳個人資訊
-		const taipeiYear = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Taipei', year: 'numeric' }).format(new Date()));
+			const personalInfo = {
+				name: 'SamHacker',
+				aka: ['510208', 'Misaka Itosana'],
+				age: taipeiYear - 2010,
+				location: 'Taichung, Taiwan',
+				links: [
+					{ github: 'https://github.com/510208' },
+					{ wakatime: 'https://wakatime.com/@SamHacker' },
+					{ blog: 'https://samhacker.xyz' },
+					{ personal_website: 'https://510208.github.io' },
+					{ bento: 'https://bento.me/510208' },
+					{ threads: 'https://www.threads.com/@samhacker.xyz' },
+					{ youtube: 'https://www.youtube.com/channel/UC6orwHdQNVzwHsA6M7HYD9g' },
+				],
+				school: 'Taichung Municipal Taichung First Senior High School',
+				hobbies: ['programming', 'reading', 'gaming', 'watching anime'],
+			};
 
-		const personalInfo = {
-			name: 'SamHacker',
-			aka: ['510208', 'Misaka Itosana'],
-			age: taipeiYear - 2010,
-			location: 'Taichung, Taiwan',
-			links: [
-				{ github: 'https://github.com/510208' },
-				{ wakatime: 'https://wakatime.com/@SamHacker' },
-				{ blog: 'https://samhacker.xyz' },
-				{ personal_website: 'https://510208.github.io' },
-				{ bento: 'https://bento.me/510208' },
-				{ threads: 'https://www.threads.com/@samhacker.xyz' },
-				{ youtube: 'https://www.youtube.com/channel/UC6orwHdQNVzwHsA6M7HYD9g' },
-			],
-			school: 'Taichung Municipal Taichung First Senior High School',
-			hobbies: ['programming', 'reading', 'gaming', 'watching anime'],
-		};
+			return new Response(JSON.stringify(personalInfo), {
+				status: 200,
+				headers: { 'Content-Type': 'application/json' },
+			});
+		}
 
-		return new Response(JSON.stringify(personalInfo), {
-			status: 200,
-			headers: { 'Content-Type': 'application/json' },
-		});
+		// 預設回應
+		return new Response("Not Found\nMaybe you are looking for '/', it has something about me!", { status: 404 });
 	},
 };
