@@ -1,12 +1,16 @@
 /**
- * Cloudflare Worker for proxying WakaTime API requests with 30-min cache.
+ * Rick Roll 重導向 - 只負責產生回應內容
  */
 
-const CACHE_TTL = 1800; // 30分鐘（秒）
-
 const handler = {
-	async fetch(request, env, ctx) {
-		return Response.redirect('https://www.youtube.com/watch?v=dQw4w9WgXcQ', 302);
+	async handle(request, env, ctx) {
+		return {
+			body: '',
+			status: 302,
+			headers: {
+				Location: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+			},
+		};
 	},
 };
 
