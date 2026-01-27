@@ -23,6 +23,7 @@ function createResponse(body, status = 200, additionalHeaders = {}, request = nu
 	// 允許的來源清單
 	const allowedOrigins = [
 		'https://510208.github.io',
+		'https://samhacker.xyz',
 		'http://localhost:5173',
 		'http://localhost:5174',
 		'http://localhost:4173',
