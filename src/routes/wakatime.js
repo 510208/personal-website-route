@@ -38,6 +38,7 @@ const handler = {
 		let cachedResponse = await caches.default.match(cacheKey);
 		if (cachedResponse) {
 			const body = await cachedResponse.text();
+			// 回傳時只傳遞 Cache-Control，避免快取中帶入上游的 CORS 標頭
 			return {
 				body: body,
 				status: cachedResponse.status,
@@ -60,10 +61,18 @@ const handler = {
 		const wakaResp = await fetch(wakaUrl, reqInit);
 		const respBody = await wakaResp.text();
 
-		// 快取回應
+		// 清理上游 headers（移除任何 Access-Control-*），再快取回應
+		const cleaned = new Headers(wakaResp.headers);
+		cleaned.delete('access-control-allow-origin');
+		cleaned.delete('Access-Control-Allow-Origin');
+		cleaned.delete('access-control-allow-methods');
+		cleaned.delete('Access-Control-Allow-Methods');
+		cleaned.delete('access-control-allow-headers');
+		cleaned.delete('Access-Control-Allow-Headers');
+
 		const cacheResponse = new Response(respBody, {
 			status: wakaResp.status,
-			headers: wakaResp.headers,
+			headers: cleaned,
 		});
 		cacheResponse.headers.set('Cache-Control', `public, max-age=${CACHE_TTL}`);
 		ctx.waitUntil(caches.default.put(cacheKey, cacheResponse.clone()));
