@@ -41,6 +41,8 @@ const handler = {
 			delete headers['Content-Encoding'];
 			delete headers['content-length'];
 			delete headers['Content-Length'];
+			// 確保 Content-Type 為 JSON 並設定快取
+			headers['Content-Type'] = 'application/json; charset=UTF-8';
 			headers['Cache-Control'] = `public, max-age=${CACHE_TTL}`;
 			return {
 				body: body,
@@ -70,6 +72,8 @@ const handler = {
 		cleanedHeaders.delete('Content-Encoding');
 		cleanedHeaders.delete('content-length');
 		cleanedHeaders.delete('Content-Length');
+		// 強制 Content-Type 為 JSON（避免出現 "text/plain, application/json; charset=UTF-8"）
+		cleanedHeaders.set('Content-Type', 'application/json; charset=UTF-8');
 		cleanedHeaders.set('Cache-Control', `public, max-age=${CACHE_TTL}`);
 
 		// 快取回應（使用清理過的 headers）
