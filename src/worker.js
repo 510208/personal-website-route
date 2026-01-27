@@ -71,6 +71,12 @@ export default {
 			return createResponse(result.body, result.status, result.headers || {}, request);
 		}
 
+		if (url.pathname.startsWith('/youtube/v3')) {
+			const module = await import('./routes/youtube.js');
+			const result = await module.default.handle(request, env, ctx);
+			return createResponse(result.body, result.status, result.headers || {}, request);
+		}
+
 		if (url.pathname === '/') {
 			// 預設回傳個人資訊
 			const taipeiYear = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Taipei', year: 'numeric' }).format(new Date()));
