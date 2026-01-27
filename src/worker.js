@@ -34,15 +34,22 @@ function createResponse(body, status = 200, additionalHeaders = {}, request = nu
 		'http://127.0.0.1:4174',
 	];
 
-	// 檢查請求來源
+	// 檢查請求來源，若為白名單、localhost/127.0.0.1（任意 port）或字串 "null"（dev server）則 echo 回傳
 	const origin = request?.headers.get('Origin') || '';
-	const allowOrigin = allowedOrigins.includes(origin) ? origin : 'https://510208.github.io';
+	let allowOrigin = 'https://510208.github.io';
+	if (origin) {
+		const localhostPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+		if (allowedOrigins.includes(origin) || localhostPattern.test(origin) || origin === 'null') {
+			allowOrigin = origin;
+		}
+	}
 
 	const headers = {
 		'Content-Type': isJSON ? 'application/json' : 'text/plain',
 		'Access-Control-Allow-Origin': allowOrigin,
 		'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
 		'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+		Vary: 'Origin',
 		...additionalHeaders,
 	};
 
