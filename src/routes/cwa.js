@@ -7,6 +7,7 @@ const CWA_API_BASE_URL = "https://opendata.cwa.gov.tw/api/v1";
 const DATASTORE_PATH = "/rest/datastore/";
 const CACHE_TTL = 1800; // 30分鐘（秒）
 const CACHE_CONTROL = `public, max-age=${CACHE_TTL}`;
+const CACHE_STATUS_HEADER = "X-Cache";
 const DEFAULT_ALLOWED_DATASETS = ["F-D0047-073", "F-D0047-093"];
 const BODY_METHODS = new Set(["POST", "PUT", "PATCH"]);
 const STRIPPED_HEADERS = [
@@ -46,7 +47,7 @@ const handler = {
       return {
         body: await cachedResponse.text(),
         status: cachedResponse.status,
-        headers: toPlainHeaders(cleanCwaHeaders(cachedResponse.headers)),
+        headers: toPlainHeaders(cleanCwaHeaders(cachedResponse.headers, "HIT")),
       };
     }
 
@@ -60,7 +61,7 @@ const handler = {
       body: BODY_METHODS.has(method) ? await request.text() : undefined,
     });
     const respBody = await cwaResp.text();
-    const cleanedHeaders = cleanCwaHeaders(cwaResp.headers);
+    const cleanedHeaders = cleanCwaHeaders(cwaResp.headers, "MISS");
 
     const cacheResponse = new Response(respBody, {
       status: cwaResp.status,
@@ -117,7 +118,7 @@ function buildCwaUrl(pathname, searchParams, env) {
   return upstreamUrl.toString();
 }
 
-function cleanCwaHeaders(headers) {
+function cleanCwaHeaders(headers, cacheStatus) {
   const cleanedHeaders = new Headers(headers);
 
   for (const header of STRIPPED_HEADERS) {
@@ -125,6 +126,7 @@ function cleanCwaHeaders(headers) {
   }
 
   cleanedHeaders.set("Cache-Control", CACHE_CONTROL);
+  cleanedHeaders.set(CACHE_STATUS_HEADER, cacheStatus);
 
   return cleanedHeaders;
 }
