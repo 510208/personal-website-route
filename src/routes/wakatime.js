@@ -3,6 +3,9 @@
  */
 
 const CACHE_TTL = 1800; // 30分鐘（秒）
+const CACHE_CONTROL = `public, max-age=${CACHE_TTL}`;
+const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH']);
+const CORS_HEADERS = ['access-control-allow-origin', 'access-control-allow-methods', 'access-control-allow-headers'];
 
 const handler = {
 	async handle(request, env, ctx) {
@@ -42,7 +45,7 @@ const handler = {
 			return {
 				body: body,
 				status: cachedResponse.status,
-				headers: { 'Cache-Control': `public, max-age=${CACHE_TTL}` },
+				headers: { 'Cache-Control': CACHE_CONTROL },
 			};
 		}
 
@@ -55,34 +58,38 @@ const handler = {
 		const reqInit = {
 			method,
 			headers: proxyHeaders,
-			body: ['POST', 'PUT', 'PATCH'].includes(method) ? await request.text() : undefined,
+			body: BODY_METHODS.has(method) ? await request.text() : undefined,
 		};
 
 		const wakaResp = await fetch(wakaUrl, reqInit);
 		const respBody = await wakaResp.text();
 
 		// 清理上游 headers（移除任何 Access-Control-*），再快取回應
-		const cleaned = new Headers(wakaResp.headers);
-		cleaned.delete('access-control-allow-origin');
-		cleaned.delete('Access-Control-Allow-Origin');
-		cleaned.delete('access-control-allow-methods');
-		cleaned.delete('Access-Control-Allow-Methods');
-		cleaned.delete('access-control-allow-headers');
-		cleaned.delete('Access-Control-Allow-Headers');
+		const cleaned = stripCorsHeaders(wakaResp.headers);
 
 		const cacheResponse = new Response(respBody, {
 			status: wakaResp.status,
 			headers: cleaned,
 		});
-		cacheResponse.headers.set('Cache-Control', `public, max-age=${CACHE_TTL}`);
+		cacheResponse.headers.set('Cache-Control', CACHE_CONTROL);
 		ctx.waitUntil(caches.default.put(cacheKey, cacheResponse.clone()));
 
 		return {
 			body: respBody,
 			status: wakaResp.status,
-			headers: { 'Cache-Control': `public, max-age=${CACHE_TTL}` },
+			headers: { 'Cache-Control': CACHE_CONTROL },
 		};
 	},
 };
+
+function stripCorsHeaders(headers) {
+	const cleanedHeaders = new Headers(headers);
+
+	for (const header of CORS_HEADERS) {
+		cleanedHeaders.delete(header);
+	}
+
+	return cleanedHeaders;
+}
 
 export default handler;

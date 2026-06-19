@@ -3,6 +3,15 @@
  */
 
 const CACHE_TTL = 1800; // 30分鐘（秒)
+const CACHE_CONTROL = `public, max-age=${CACHE_TTL}`;
+const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH']);
+const STRIPPED_HEADERS = [
+	'content-encoding',
+	'content-length',
+	'access-control-allow-origin',
+	'access-control-allow-methods',
+	'access-control-allow-headers',
+];
 
 const handler = {
 	async handle(request, env, ctx) {
@@ -35,26 +44,10 @@ const handler = {
 		let cachedResponse = await caches.default.match(cacheKey);
 		if (cachedResponse) {
 			const body = await cachedResponse.text();
-			const headers = Object.fromEntries(cachedResponse.headers.entries());
-			// 移除可能導致亂碼的壓縮標頭
-			delete headers['content-encoding'];
-			delete headers['Content-Encoding'];
-			delete headers['content-length'];
-			delete headers['Content-Length'];
-			// 移除任何 Access-Control-*（不同大小寫）以避免重複 origin 值
-			delete headers['access-control-allow-origin'];
-			delete headers['Access-Control-Allow-Origin'];
-			delete headers['access-control-allow-methods'];
-			delete headers['Access-Control-Allow-Methods'];
-			delete headers['access-control-allow-headers'];
-			delete headers['Access-Control-Allow-Headers'];
-			// 確保 Content-Type 為 JSON 並設定快取
-			headers['Content-Type'] = 'application/json; charset=UTF-8';
-			headers['Cache-Control'] = `public, max-age=${CACHE_TTL}`;
 			return {
 				body: body,
 				status: cachedResponse.status,
-				headers: headers,
+				headers: toPlainHeaders(cleanYouTubeHeaders(cachedResponse.headers)),
 			};
 		}
 
@@ -66,29 +59,13 @@ const handler = {
 		const reqInit = {
 			method,
 			headers: proxyHeaders,
-			body: ['POST', 'PUT', 'PATCH'].includes(method) ? await request.text() : undefined,
+			body: BODY_METHODS.has(method) ? await request.text() : undefined,
 		};
 
 		const ytResp = await fetch(ytUrl, reqInit);
 		// 讀取文字內容（YouTube Data API 是 JSON），然後複製並清理 headers 再快取／回傳
 		const respBody = await ytResp.text();
-
-		// 複製 headers 並移除 content-encoding / content-length / Access-Control-*，避免客戶端誤解內容編碼或造成重複 CORS 值
-		const cleanedHeaders = new Headers(ytResp.headers);
-		cleanedHeaders.delete('content-encoding');
-		cleanedHeaders.delete('Content-Encoding');
-		cleanedHeaders.delete('content-length');
-		cleanedHeaders.delete('Content-Length');
-		// 移除 any Access-Control-*（不同大小寫）
-		cleanedHeaders.delete('access-control-allow-origin');
-		cleanedHeaders.delete('Access-Control-Allow-Origin');
-		cleanedHeaders.delete('access-control-allow-methods');
-		cleanedHeaders.delete('Access-Control-Allow-Methods');
-		cleanedHeaders.delete('access-control-allow-headers');
-		cleanedHeaders.delete('Access-Control-Allow-Headers');
-		// 強制 Content-Type 為 JSON（避免出現 "text/plain, application/json; charset=UTF-8"）
-		cleanedHeaders.set('Content-Type', 'application/json; charset=UTF-8');
-		cleanedHeaders.set('Cache-Control', `public, max-age=${CACHE_TTL}`);
+		const cleanedHeaders = cleanYouTubeHeaders(ytResp.headers);
 
 		// 快取回應（使用清理過的 headers）
 		const cacheResponse = new Response(respBody, {
@@ -97,13 +74,30 @@ const handler = {
 		});
 		ctx.waitUntil(caches.default.put(cacheKey, cacheResponse.clone()));
 
-		const headers = Object.fromEntries(cleanedHeaders.entries());
 		return {
 			body: respBody,
 			status: ytResp.status,
-			headers: headers,
+			headers: toPlainHeaders(cleanedHeaders),
 		};
 	},
 };
+
+function cleanYouTubeHeaders(headers) {
+	const cleanedHeaders = new Headers(headers);
+
+	for (const header of STRIPPED_HEADERS) {
+		cleanedHeaders.delete(header);
+	}
+
+	// 強制 Content-Type 為 JSON（避免出現 "text/plain, application/json; charset=UTF-8"）
+	cleanedHeaders.set('Content-Type', 'application/json; charset=UTF-8');
+	cleanedHeaders.set('Cache-Control', CACHE_CONTROL);
+
+	return cleanedHeaders;
+}
+
+function toPlainHeaders(headers) {
+	return Object.fromEntries(headers.entries());
+}
 
 export default handler;
