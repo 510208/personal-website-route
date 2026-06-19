@@ -35,3 +35,5 @@ Pull requests should describe the changed routes, list manual verification steps
 ## Security & Configuration Tips
 
 Keep real API keys out of committed files. Prefer local `.env` values and Wrangler secrets for credentials such as `WAKATIME_API_KEY` and `YOUTUBE_DATA_API_KEY`, and keep `.env.example` sanitized with placeholder values only.
+
+The `wrangler.jsonc` file had added into `.gitignore` to prevent accidental commits of real API keys. If you need to update `wrangler.jsonc` for deployment, ensure that sensitive values are replaced with placeholders before committing.
