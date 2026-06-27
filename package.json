@@ -9,10 +9,16 @@
 		"start": "wrangler dev"
 	},
 	"devDependencies": {
-		"wrangler": "^4.45.3"
+		"wrangler": "^4.105.0"
 	},
 	"packageManager": "pnpm@10.3.0",
 	"dependencies": {
 		"hono": "^4.12.26"
+	},
+	"pnpm": {
+		"onlyBuiltDependencies": [
+			"esbuild",
+			"workerd"
+		]
 	}
 }
