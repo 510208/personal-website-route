@@ -5,6 +5,7 @@ import cwaRoute from './routes/cwa.js';
 import rickRoute from './routes/rick.js';
 import wakatimeRoute from './routes/wakatime.js';
 import youtubeRoute from './routes/youtube.js';
+import googleSearchSuggestionsRoute from './routes/googleSearchSuggestions.js';
 
 const DEFAULT_ALLOWED_ORIGIN = 'https://510208.github.io';
 const ALLOWED_ORIGINS = new Set([
@@ -28,6 +29,7 @@ const ROUTES = [
 	{ prefix: '/wakatime_sh', handler: wakatimeRoute },
 	{ prefix: '/rick', handler: rickRoute },
 	{ prefix: '/youtube/v3', handler: youtubeRoute },
+	{ prefix: '/search_suggestions', handler: googleSearchSuggestionsRoute }, // Google 搜尋建議 API 代理
 ];
 
 const router = new Hono();
