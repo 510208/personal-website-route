@@ -7,10 +7,11 @@ import wakatimeRoute from './routes/wakatime.js';
 import youtubeRoute from './routes/youtube.js';
 import googleSearchSuggestionsRoute from './routes/googleSearchSuggestions.js';
 
-const DEFAULT_ALLOWED_ORIGIN = 'https://510208.github.io';
+const DEFAULT_ALLOWED_ORIGIN = 'https://samhacker.xyz';
 const ALLOWED_ORIGINS = new Set([
 	DEFAULT_ALLOWED_ORIGIN,
 	'https://samhacker.xyz',
+	'https://510208.github.io',
 	'https://homepage.samhacker.xyz',
 	'http://localhost:5173',
 	'http://localhost:5174',
