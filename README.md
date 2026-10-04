@@ -4,15 +4,18 @@
 
 ## 架構說明
 
-- 主入口：`src/worker.js`，匯出 Worker 使用的 Hono router。
-- 路由設定：`src/router.js`，建立 Hono app、套用 CORS middleware，並分派請求。
+- Worker 入口：`src/index.js`，匯出 Cloudflare Workers 使用的 Hono app；`src/worker.js` 保留為舊入口相容檔。
+- Hono app：`src/app.js`，註冊全域 middleware、路由與 404 回應。
+- Middleware：`src/middleware/`，放置 CORS 等跨路由共用 middleware。
 - 路由設計：
   - `/` 回傳個人資訊（JSON 格式）。
   - `/cwa/v1/*` 代理中華民國中央氣象署 OpenData API，使用 `src/routes/cwa.js`，支援資料集白名單與 30 分鐘快取。
   - `/wakatime_sh` 代理 WakaTime API，使用 `src/routes/wakatime.js`，支援 30 分鐘快取。
   - `/youtube/v3/*` 代理 YouTube Data API，使用 `src/routes/youtube.js`，支援 30 分鐘快取。
+  - `/search_suggestions` 代理 Google 搜尋建議 API，使用 `src/routes/googleSearchSuggestions.js`，支援 30 分鐘快取。
   - `/rick` 重導向至 Rick Roll。
-- 路由擴充：新增 API 請於 `src/routes/` 建檔，並於 `router.js` 的 route table 註冊 prefix 與 handler。
+- 路由組合：`src/routes/index.js` 使用 Hono 的 `app.route()` 掛載各子路由。新增 API 時，在 `src/routes/` 建立 Hono app 並於此處掛載。
+- 共用資料：`src/utils/` 放置跨模組共用的資料與 helper，例如個人資訊物件。
 
 ## 開發與部署
 
@@ -25,12 +28,11 @@
 
 ## 重要慣例
 
-- 路由分派由 `src/router.js` 的 Hono app 處理，route module 仍維持 `handle(request, env, ctx)` 介面。
+- 各 route module 匯出 Hono app，以 `app.get()`、`app.all()` 等方法定義 endpoint，並由 `src/routes/index.js` 組合。
 - WakaTime Proxy 需從 query string 取得 `path` 參數，並自動附加 Authorization header。
 - CWA Proxy 會從 `/cwa/v1/rest/datastore/{datasetId}` 讀取資料集編號並比對白名單；若請求未帶 `Authorization` query，會自動附加 `CWA_API_KEY`。
 - 快取使用 `caches.default`，快取 key 為 request.url，快取時間由各 route module 控制。
-- 回應格式由 route module 回傳 `{ body, status, headers }`，再由 `router.js` 統一轉成 `Response`。
-- 個人資訊物件結構可參考 `router.js` 內 `getPersonalInfo()`。
+- 各 route handler 使用 Hono context 回傳 JSON、文字或代理回應；個人資訊物件位於 `src/utils/personalInfo.js`。
 
 ## 外部整合
 
@@ -46,8 +48,10 @@
 
 ## 參考檔案
 
-- `src/worker.js`：Worker entry point
-- `src/router.js`：主路由分派與個人資訊 API
-- `src/routes/`：各 API 路由模組
+- `src/index.js`：Worker entry point
+- `src/app.js`：Hono app 與全域設定
+- `src/middleware/`：共用 middleware
+- `src/routes/`：Hono 子路由與路由組合
+- `src/utils/`：共用資料與 helper
 - `wrangler.jsonc`：Cloudflare Worker 設定
 - `.github/copilot-instructions.md`：AI agent 指南
