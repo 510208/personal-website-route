@@ -1,4 +1,7 @@
 import { Hono } from 'hono';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
+
+import type { AppEnv } from '../types.js';
 
 const CACHE_TTL = 1800;
 const CACHE_CONTROL = `public, max-age=${CACHE_TTL}`;
@@ -6,7 +9,7 @@ const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH']);
 const CORS_HEADERS = ['access-control-allow-origin', 'access-control-allow-methods', 'access-control-allow-headers'];
 const ROUTE_PATH = '/wakatime_sh';
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 app.all('*', async (c) => {
 	const url = new URL(c.req.url);
@@ -35,7 +38,7 @@ app.all('*', async (c) => {
 	const cachedResponse = await caches.default.match(cacheKey);
 	if (cachedResponse) {
 		const headers = new Headers({ 'Cache-Control': CACHE_CONTROL });
-		return c.newResponse(await cachedResponse.text(), cachedResponse.status, headers);
+		return c.newResponse(await cachedResponse.text(), toContentfulStatus(cachedResponse.status), headers);
 	}
 
 	const proxyHeaders = new Headers(c.req.raw.headers);
@@ -59,10 +62,10 @@ app.all('*', async (c) => {
 		),
 	);
 
-	return c.newResponse(respBody, wakaResp.status, new Headers({ 'Cache-Control': CACHE_CONTROL }));
+	return c.newResponse(respBody, toContentfulStatus(wakaResp.status), new Headers({ 'Cache-Control': CACHE_CONTROL }));
 });
 
-function stripCorsHeaders(headers) {
+function stripCorsHeaders(headers: Headers) {
 	const cleanedHeaders = new Headers(headers);
 
 	for (const header of CORS_HEADERS) {
@@ -70,6 +73,10 @@ function stripCorsHeaders(headers) {
 	}
 
 	return cleanedHeaders;
+}
+
+function toContentfulStatus(status: number): ContentfulStatusCode {
+	return status as ContentfulStatusCode;
 }
 
 export default app;

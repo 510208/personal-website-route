@@ -1,4 +1,7 @@
 import { Hono } from 'hono';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
+
+import type { AppEnv } from '../types.js';
 
 const CACHE_TTL = 1800;
 const CACHE_CONTROL = `public, max-age=${CACHE_TTL}`;
@@ -11,7 +14,7 @@ const STRIPPED_HEADERS = [
 	'access-control-allow-headers',
 ];
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 app.all('*', async (c) => {
 	const url = new URL(c.req.url);
@@ -30,7 +33,7 @@ app.all('*', async (c) => {
 	const cacheKey = new Request(c.req.url, c.req.raw);
 	const cachedResponse = await caches.default.match(cacheKey);
 	if (cachedResponse) {
-		return c.newResponse(await cachedResponse.text(), cachedResponse.status, cleanYouTubeHeaders(cachedResponse.headers));
+		return c.newResponse(await cachedResponse.text(), toContentfulStatus(cachedResponse.status), cleanYouTubeHeaders(cachedResponse.headers));
 	}
 
 	const proxyHeaders = new Headers(c.req.raw.headers);
@@ -49,10 +52,10 @@ app.all('*', async (c) => {
 		caches.default.put(cacheKey, new Response(respBody, { status: ytResp.status, headers: cleanedHeaders })),
 	);
 
-	return c.newResponse(respBody, ytResp.status, cleanedHeaders);
+	return c.newResponse(respBody, toContentfulStatus(ytResp.status), cleanedHeaders);
 });
 
-function cleanYouTubeHeaders(headers) {
+function cleanYouTubeHeaders(headers: Headers) {
 	const cleanedHeaders = new Headers(headers);
 
 	for (const header of STRIPPED_HEADERS) {
@@ -63,6 +66,10 @@ function cleanYouTubeHeaders(headers) {
 	cleanedHeaders.set('Cache-Control', CACHE_CONTROL);
 
 	return cleanedHeaders;
+}
+
+function toContentfulStatus(status: number): ContentfulStatusCode {
+	return status as ContentfulStatusCode;
 }
 
 export default app;
