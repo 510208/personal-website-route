@@ -1,12 +1,13 @@
 import { Hono } from 'hono';
 
-import cwaRoute from './cwa.js';
-import googleSearchSuggestionsRoute from './googleSearchSuggestions.js';
-import personalRoute from './personal.js';
-import rickRoute from './rick.js';
-import wakatimeRoute from './wakatime.js';
-import youtubeRoute from './youtube.js';
-import type { AppEnv } from '../types.js';
+import cwaRoute from './cwa';
+import googleSearchSuggestionsRoute from './googleSearchSuggestions';
+import personalRoute from './personal';
+import rickRoute from './rick';
+import wakatimeRoute from './wakatime';
+import youtubeRoute from './youtube';
+import githubRoute from './github';
+import type { AppEnv } from '../types';
 
 const routes = new Hono<AppEnv>();
 
@@ -16,5 +17,6 @@ routes.route('/wakatime_sh', wakatimeRoute);
 routes.route('/rick', rickRoute);
 routes.route('/youtube/v3', youtubeRoute);
 routes.route('/search_suggestions', googleSearchSuggestionsRoute);
+routes.route('/github', githubRoute);
 
 export default routes;
