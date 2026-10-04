@@ -6,10 +6,15 @@
 	"scripts": {
 		"deploy": "wrangler deploy",
 		"dev": "wrangler dev",
-		"start": "wrangler dev"
+		"start": "wrangler dev",
+		"typecheck": "tsc --noEmit"
 	},
 	"devDependencies": {
-		"wrangler": "^4.105.0"
+		"@cloudflare/workers-types": "^5.20261004.1",
+		"@types/node": "^26.6.4",
+		"tsx": "^4.23.15",
+		"typescript": "^7.0.2",
+		"wrangler": "^4.147.0"
 	},
 	"packageManager": "pnpm@10.3.0",
 	"dependencies": {
