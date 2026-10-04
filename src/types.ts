@@ -3,6 +3,7 @@ export type Bindings = {
 	YOUTUBE_DATA_API_KEY?: string;
 	CWA_API_KEY?: string;
 	CWA_ALLOWED_DATASETS?: string;
+	GITHUB_TOKEN?: string;
 };
 
 export type AppEnv = {
