@@ -1,86 +1,66 @@
-/**
- * WakaTime API 代理 - 只負責產生回應內容
- */
+import { Hono } from 'hono';
 
-const CACHE_TTL = 1800; // 30分鐘（秒）
+const CACHE_TTL = 1800;
 const CACHE_CONTROL = `public, max-age=${CACHE_TTL}`;
 const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH']);
 const CORS_HEADERS = ['access-control-allow-origin', 'access-control-allow-methods', 'access-control-allow-headers'];
+const ROUTE_PATH = '/wakatime_sh';
 
-const handler = {
-	async handle(request, env, ctx) {
-		const url = new URL(request.url);
+const app = new Hono();
 
-		// 驗證路徑
-		if (url.pathname !== '/wakatime_sh') {
-			return { body: 'Not Found', status: 404 };
+app.all('*', async (c) => {
+	const url = new URL(c.req.url);
+	if (url.pathname !== ROUTE_PATH) {
+		return c.text('Not Found', 404);
+	}
+
+	const wakaPath = url.searchParams.get('path');
+	if (!wakaPath) {
+		return c.text("Missing 'path' parameter", 400);
+	}
+
+	const apiKey = c.env.WAKATIME_API_KEY || '';
+	if (!apiKey) {
+		return c.text('Missing API Key', 400);
+	}
+
+	const wakaUrl = new URL(wakaPath, 'https://wakatime.com');
+	for (const [key, value] of url.searchParams.entries()) {
+		if (key !== 'path') {
+			wakaUrl.searchParams.append(key, value);
 		}
+	}
 
-		// 驗證參數
-		const wakaPath = url.searchParams.get('path');
-		if (!wakaPath) {
-			return { body: "Missing 'path' parameter", status: 400 };
-		}
+	const cacheKey = new Request(c.req.url, c.req.raw);
+	const cachedResponse = await caches.default.match(cacheKey);
+	if (cachedResponse) {
+		const headers = new Headers({ 'Cache-Control': CACHE_CONTROL });
+		return c.newResponse(await cachedResponse.text(), cachedResponse.status, headers);
+	}
 
-		// 驗證 API Key
-		const apiKey = env.WAKATIME_API_KEY || '';
-		if (!apiKey) {
-			return { body: 'Missing API Key', status: 400 };
-		}
+	const proxyHeaders = new Headers(c.req.raw.headers);
+	proxyHeaders.delete('host');
+	proxyHeaders.set('Authorization', `Basic ${btoa(apiKey)}`);
 
-		// 建立 WakaTime URL
-		let wakaUrl = `https://wakatime.com${wakaPath}`;
-		const params = [...url.searchParams.entries()]
-			.filter(([k]) => k !== 'path')
-			.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-			.join('&');
-		if (params) wakaUrl += (wakaPath.includes('?') ? '&' : '?') + params;
+	const method = c.req.method || 'GET';
+	const wakaResp = await fetch(wakaUrl, {
+		method,
+		headers: proxyHeaders,
+		body: BODY_METHODS.has(method) ? await c.req.text() : undefined,
+	});
+	const respBody = await wakaResp.text();
+	const cleanedHeaders = stripCorsHeaders(wakaResp.headers);
+	cleanedHeaders.set('Cache-Control', CACHE_CONTROL);
 
-		// 檢查快取
-		const cacheKey = new Request(request.url, request);
-		let cachedResponse = await caches.default.match(cacheKey);
-		if (cachedResponse) {
-			const body = await cachedResponse.text();
-			// 回傳時只傳遞 Cache-Control，避免快取中帶入上游的 CORS 標頭
-			return {
-				body: body,
-				status: cachedResponse.status,
-				headers: { 'Cache-Control': CACHE_CONTROL },
-			};
-		}
+	c.executionCtx.waitUntil(
+		caches.default.put(
+			cacheKey,
+			new Response(respBody, { status: wakaResp.status, headers: cleanedHeaders }),
+		),
+	);
 
-		// 代理請求
-		const proxyHeaders = new Headers(request.headers);
-		proxyHeaders.delete('host');
-		proxyHeaders.set('Authorization', 'Basic ' + btoa(apiKey));
-
-		const method = request.method || 'GET';
-		const reqInit = {
-			method,
-			headers: proxyHeaders,
-			body: BODY_METHODS.has(method) ? await request.text() : undefined,
-		};
-
-		const wakaResp = await fetch(wakaUrl, reqInit);
-		const respBody = await wakaResp.text();
-
-		// 清理上游 headers（移除任何 Access-Control-*），再快取回應
-		const cleaned = stripCorsHeaders(wakaResp.headers);
-
-		const cacheResponse = new Response(respBody, {
-			status: wakaResp.status,
-			headers: cleaned,
-		});
-		cacheResponse.headers.set('Cache-Control', CACHE_CONTROL);
-		ctx.waitUntil(caches.default.put(cacheKey, cacheResponse.clone()));
-
-		return {
-			body: respBody,
-			status: wakaResp.status,
-			headers: { 'Cache-Control': CACHE_CONTROL },
-		};
-	},
-};
+	return c.newResponse(respBody, wakaResp.status, new Headers({ 'Cache-Control': CACHE_CONTROL }));
+});
 
 function stripCorsHeaders(headers) {
 	const cleanedHeaders = new Headers(headers);
@@ -92,4 +72,4 @@ function stripCorsHeaders(headers) {
 	return cleanedHeaders;
 }
 
-export default handler;
+export default app;
