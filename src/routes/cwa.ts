@@ -1,4 +1,7 @@
 import { Hono } from 'hono';
+import type { ContentfulStatusCode } from 'hono/utils/http-status';
+
+import type { AppEnv, Bindings } from '../types.js';
 
 const CWA_API_BASE_URL = 'https://opendata.cwa.gov.tw/api/v1';
 const ROUTE_PREFIX = '/cwa/v1';
@@ -16,7 +19,7 @@ const STRIPPED_HEADERS = [
 	'access-control-allow-headers',
 ];
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 app.all('*', async (c) => {
 	const url = new URL(c.req.url);
@@ -42,7 +45,7 @@ app.all('*', async (c) => {
 	const cacheKey = new Request(c.req.url, c.req.raw);
 	const cachedResponse = await caches.default.match(cacheKey);
 	if (cachedResponse) {
-		return c.newResponse(await cachedResponse.text(), cachedResponse.status, cleanCwaHeaders(cachedResponse.headers, 'HIT'));
+		return c.newResponse(await cachedResponse.text(), toContentfulStatus(cachedResponse.status), cleanCwaHeaders(cachedResponse.headers, 'HIT'));
 	}
 
 	const proxyHeaders = new Headers(c.req.raw.headers);
@@ -57,17 +60,12 @@ app.all('*', async (c) => {
 	const respBody = await cwaResp.text();
 	const cleanedHeaders = cleanCwaHeaders(cwaResp.headers, 'MISS');
 
-	c.executionCtx.waitUntil(
-		caches.default.put(
-			cacheKey,
-			new Response(respBody, { status: cwaResp.status, headers: cleanedHeaders }),
-		),
-	);
+	c.executionCtx.waitUntil(caches.default.put(cacheKey, new Response(respBody, { status: cwaResp.status, headers: cleanedHeaders })));
 
-	return c.newResponse(respBody, cwaResp.status, cleanedHeaders);
+	return c.newResponse(respBody, toContentfulStatus(cwaResp.status), cleanedHeaders);
 });
 
-function getDatasetId(pathname) {
+function getDatasetId(pathname: string) {
 	if (!pathname.startsWith(DATASTORE_PATH)) {
 		return '';
 	}
@@ -75,7 +73,7 @@ function getDatasetId(pathname) {
 	return pathname.slice(DATASTORE_PATH.length).split('/')[0] || '';
 }
 
-function getAllowedDatasets(env) {
+function getAllowedDatasets(env: Bindings) {
 	const configuredDatasets = (env.CWA_ALLOWED_DATASETS || '')
 		.split(',')
 		.map((dataset) => dataset.trim())
@@ -84,7 +82,7 @@ function getAllowedDatasets(env) {
 	return new Set(configuredDatasets.length > 0 ? configuredDatasets : DEFAULT_ALLOWED_DATASETS);
 }
 
-function buildCwaUrl(pathname, searchParams, env) {
+function buildCwaUrl(pathname: string, searchParams: URLSearchParams, env: Bindings) {
 	const upstreamUrl = new URL(CWA_API_BASE_URL + pathname);
 
 	if (searchParams.has('Authorization')) {
@@ -108,7 +106,7 @@ function buildCwaUrl(pathname, searchParams, env) {
 	return upstreamUrl.toString();
 }
 
-function cleanCwaHeaders(headers, cacheStatus) {
+function cleanCwaHeaders(headers: Headers, cacheStatus: string) {
 	const cleanedHeaders = new Headers(headers);
 
 	for (const header of STRIPPED_HEADERS) {
@@ -119,6 +117,10 @@ function cleanCwaHeaders(headers, cacheStatus) {
 	cleanedHeaders.set(CACHE_STATUS_HEADER, cacheStatus);
 
 	return cleanedHeaders;
+}
+
+function toContentfulStatus(status: number): ContentfulStatusCode {
+	return status as ContentfulStatusCode;
 }
 
 export default app;

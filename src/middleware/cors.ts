@@ -1,4 +1,7 @@
+import type { Hono } from 'hono';
 import { cors } from 'hono/cors';
+
+import type { AppEnv } from '../types.js';
 
 const DEFAULT_ALLOWED_ORIGIN = 'https://samhacker.xyz';
 const ALLOWED_ORIGINS = new Set([
@@ -19,7 +22,7 @@ const LOCALHOST_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 const ALLOW_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'];
 const ALLOW_HEADERS = ['Content-Type', 'Authorization'];
 
-export function registerCors(app) {
+export function registerCors(app: Hono<AppEnv>) {
 	app.use('*', async (c, next) => {
 		await next();
 
@@ -38,7 +41,7 @@ export function registerCors(app) {
 	);
 }
 
-function resolveAllowedOrigin(origin) {
+function resolveAllowedOrigin(origin: string | undefined) {
 	if (!origin) {
 		return DEFAULT_ALLOWED_ORIGIN;
 	}

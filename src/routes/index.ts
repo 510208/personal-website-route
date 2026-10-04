@@ -6,8 +6,9 @@ import personalRoute from './personal.js';
 import rickRoute from './rick.js';
 import wakatimeRoute from './wakatime.js';
 import youtubeRoute from './youtube.js';
+import type { AppEnv } from '../types.js';
 
-const routes = new Hono();
+const routes = new Hono<AppEnv>();
 
 routes.route('/', personalRoute);
 routes.route('/cwa/v1', cwaRoute);

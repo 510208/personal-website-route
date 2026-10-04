@@ -2,8 +2,9 @@ import { Hono } from 'hono';
 
 import { registerCors } from './middleware/cors.js';
 import routes from './routes/index.js';
+import type { AppEnv } from './types.js';
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 registerCors(app);
 app.route('/', routes);
