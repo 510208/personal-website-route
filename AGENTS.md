@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-This is a Cloudflare Workers API project. The Worker entry point is `src/worker.js`, which handles CORS, request dispatch, and the root personal-info JSON response. Route handlers live in `src/routes/` and export a default object with a `handle(request, env, ctx)` method. Current route modules include `wakatime.js`, `youtube.js`, and `rick.js`.
+This is a Cloudflare Workers API project. The Worker entry point is `src/index.ts`, which exports the Hono app. Route modules live in `src/routes/` and export typed Hono sub-apps. Current route modules include `wakatime.ts`, `youtube.ts`, and `rick.ts`.
 
 Root configuration files include `wrangler.jsonc` for Worker deployment settings, `.env.example` for expected local variables, `.prettierrc` for formatting, and `.editorconfig` for editor defaults. There is currently no dedicated test directory.
 
@@ -14,13 +14,13 @@ Use pnpm, as declared by `packageManager`.
 - `pnpm dev` or `pnpm start`: run the Worker locally with Wrangler, usually at `http://localhost:8787`.
 - `pnpm deploy`: deploy the Worker using Wrangler.
 
-No automated test script is currently defined. Verify route behavior locally with Wrangler before deploying.
+Run `pnpm typecheck` for static validation, then verify route behavior locally with Wrangler before deploying.
 
 ## Coding Style & Naming Conventions
 
-Write JavaScript only; do not introduce TypeScript unless the project is explicitly migrated. Follow Prettier settings: tabs for indentation, single quotes, semicolons, and a 140-character print width. `.editorconfig` also requires LF line endings, UTF-8, final newlines, and trimmed trailing whitespace.
+Write TypeScript. Follow the project `tsconfig.json` strict settings and Prettier conventions: tabs for indentation, single quotes, semicolons, and a 140-character print width. `.editorconfig` also requires LF line endings, UTF-8, final newlines, and trimmed trailing whitespace.
 
-Name route files by endpoint domain or feature, such as `src/routes/youtube.js`. Keep route modules focused on external API behavior, caching, and response shaping. Keep shared request dispatch and CORS behavior in `src/worker.js`.
+Name route files by endpoint domain or feature, such as `src/routes/youtube.ts`. Keep route modules focused on external API behavior, caching, and response shaping. Keep shared request dispatch and CORS behavior in `src/app.ts` and `src/middleware/`.
 
 ## Testing Guidelines
 
