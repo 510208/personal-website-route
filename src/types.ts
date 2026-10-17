@@ -7,6 +7,7 @@ export type Bindings = {
 	GA_PROPERTY_ID: string;
 	GA_CLIENT_EMAIL: string;
 	GA_PRIVATE_KEY: string;
+	APIFY_API_KEY: string;
 	THREADS_STORE: KVNamespace;
 };
 
