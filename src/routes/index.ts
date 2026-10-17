@@ -7,6 +7,7 @@ import rickRoute from './rick';
 import wakatimeRoute from './wakatime';
 import youtubeRoute from './youtube';
 import githubRoute from './github';
+import threadsRoute from './threads';
 import type { AppEnv } from '../types';
 
 const routes = new Hono<AppEnv>();
@@ -18,5 +19,6 @@ routes.route('/rick', rickRoute);
 routes.route('/youtube/v3', youtubeRoute);
 routes.route('/search_suggestions', googleSearchSuggestionsRoute);
 routes.route('/github', githubRoute);
+routes.route('/threads', threadsRoute);
 
 export default routes;
