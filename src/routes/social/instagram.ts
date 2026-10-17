@@ -3,7 +3,7 @@ import { Hono } from 'hono';
 import { cache } from '@/middleware/cache';
 import type { AppEnv } from '@/types';
 
-const CACHE_TTL = 10000;
+const CACHE_TTL = 500;
 
 const app = new Hono<AppEnv>();
 
