@@ -18,7 +18,8 @@
 	},
 	"packageManager": "pnpm@10.3.0",
 	"dependencies": {
-		"hono": "^4.12.26"
+		"hono": "^4.12.26",
+		"kuron": "^0.1.0"
 	},
 	"pnpm": {
 		"onlyBuiltDependencies": [
