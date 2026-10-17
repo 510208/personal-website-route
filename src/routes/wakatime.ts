@@ -38,7 +38,7 @@ app.all('*', async (c) => {
 	const cachedResponse = await caches.default.match(cacheKey);
 	if (cachedResponse) {
 		const headers = new Headers({ 'Cache-Control': CACHE_CONTROL });
-		return c.newResponse(await cachedResponse.text(), toContentfulStatus(cachedResponse.status), headers);
+		return c.newResponse(await cachedResponse.text(), toContentfulStatus(cachedResponse.status), toHeaderRecord(headers));
 	}
 
 	const proxyHeaders = new Headers(c.req.raw.headers);
@@ -49,7 +49,7 @@ app.all('*', async (c) => {
 	const wakaResp = await fetch(wakaUrl, {
 		method,
 		headers: proxyHeaders,
-		body: BODY_METHODS.has(method) ? await c.req.text() : undefined,
+		body: BODY_METHODS.has(method) ? await c.req.text() : null,
 	});
 	const respBody = await wakaResp.text();
 	const cleanedHeaders = stripCorsHeaders(wakaResp.headers);
@@ -62,7 +62,11 @@ app.all('*', async (c) => {
 		),
 	);
 
-	return c.newResponse(respBody, toContentfulStatus(wakaResp.status), new Headers({ 'Cache-Control': CACHE_CONTROL }));
+	return c.newResponse(
+		respBody,
+		toContentfulStatus(wakaResp.status),
+		toHeaderRecord(new Headers({ 'Cache-Control': CACHE_CONTROL })),
+	);
 });
 
 function stripCorsHeaders(headers: Headers) {
@@ -77,6 +81,10 @@ function stripCorsHeaders(headers: Headers) {
 
 function toContentfulStatus(status: number): ContentfulStatusCode {
 	return status as ContentfulStatusCode;
+}
+
+function toHeaderRecord(headers: Headers) {
+	return Object.fromEntries(headers.entries());
 }
 
 export default app;

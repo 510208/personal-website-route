@@ -41,7 +41,7 @@ app.all('*', async (c) => {
 	const googleResp = await fetch(googleUrl, {
 		method,
 		headers: proxyHeaders,
-		body: method !== 'GET' && method !== 'HEAD' ? await c.req.text() : undefined,
+		body: method !== 'GET' && method !== 'HEAD' ? await c.req.text() : null,
 	});
 	if (!googleResp.ok) {
 		return c.json({ error: 'Failed to fetch suggestions from Google' }, toContentfulStatus(googleResp.status));
@@ -60,7 +60,7 @@ app.all('*', async (c) => {
 		),
 	);
 
-	return c.newResponse(jsonResponseBody, toContentfulStatus(googleResp.status), cleanedHeaders);
+	return c.newResponse(jsonResponseBody, toContentfulStatus(googleResp.status), toHeaderRecord(cleanedHeaders));
 });
 
 function parseGoogleXmlToJson(xmlString: string) {
@@ -87,6 +87,10 @@ function stripCorsHeaders(headers: Headers) {
 
 function toContentfulStatus(status: number): ContentfulStatusCode {
 	return status as ContentfulStatusCode;
+}
+
+function toHeaderRecord(headers: Headers) {
+	return Object.fromEntries(headers.entries());
 }
 
 export default app;

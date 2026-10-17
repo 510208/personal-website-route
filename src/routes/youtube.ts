@@ -33,7 +33,11 @@ app.all('*', async (c) => {
 	const cacheKey = new Request(c.req.url, c.req.raw);
 	const cachedResponse = await caches.default.match(cacheKey);
 	if (cachedResponse) {
-		return c.newResponse(await cachedResponse.text(), toContentfulStatus(cachedResponse.status), cleanYouTubeHeaders(cachedResponse.headers));
+		return c.newResponse(
+			await cachedResponse.text(),
+			toContentfulStatus(cachedResponse.status),
+			toHeaderRecord(cleanYouTubeHeaders(cachedResponse.headers)),
+		);
 	}
 
 	const proxyHeaders = new Headers(c.req.raw.headers);
@@ -43,7 +47,7 @@ app.all('*', async (c) => {
 	const ytResp = await fetch(ytUrl, {
 		method,
 		headers: proxyHeaders,
-		body: BODY_METHODS.has(method) ? await c.req.text() : undefined,
+		body: BODY_METHODS.has(method) ? await c.req.text() : null,
 	});
 	const respBody = await ytResp.text();
 	const cleanedHeaders = cleanYouTubeHeaders(ytResp.headers);
@@ -52,7 +56,7 @@ app.all('*', async (c) => {
 		caches.default.put(cacheKey, new Response(respBody, { status: ytResp.status, headers: cleanedHeaders })),
 	);
 
-	return c.newResponse(respBody, toContentfulStatus(ytResp.status), cleanedHeaders);
+	return c.newResponse(respBody, toContentfulStatus(ytResp.status), toHeaderRecord(cleanedHeaders));
 });
 
 function cleanYouTubeHeaders(headers: Headers) {
@@ -70,6 +74,10 @@ function cleanYouTubeHeaders(headers: Headers) {
 
 function toContentfulStatus(status: number): ContentfulStatusCode {
 	return status as ContentfulStatusCode;
+}
+
+function toHeaderRecord(headers: Headers) {
+	return Object.fromEntries(headers.entries());
 }
 
 export default app;

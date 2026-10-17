@@ -45,7 +45,11 @@ app.all('*', async (c) => {
 	const cacheKey = new Request(c.req.url, c.req.raw);
 	const cachedResponse = await caches.default.match(cacheKey);
 	if (cachedResponse) {
-		return c.newResponse(await cachedResponse.text(), toContentfulStatus(cachedResponse.status), cleanCwaHeaders(cachedResponse.headers, 'HIT'));
+		return c.newResponse(
+			await cachedResponse.text(),
+			toContentfulStatus(cachedResponse.status),
+			toHeaderRecord(cleanCwaHeaders(cachedResponse.headers, 'HIT')),
+		);
 	}
 
 	const proxyHeaders = new Headers(c.req.raw.headers);
@@ -55,14 +59,14 @@ app.all('*', async (c) => {
 	const cwaResp = await fetch(cwaUrl, {
 		method,
 		headers: proxyHeaders,
-		body: BODY_METHODS.has(method) ? await c.req.text() : undefined,
+		body: BODY_METHODS.has(method) ? await c.req.text() : null,
 	});
 	const respBody = await cwaResp.text();
 	const cleanedHeaders = cleanCwaHeaders(cwaResp.headers, 'MISS');
 
 	c.executionCtx.waitUntil(caches.default.put(cacheKey, new Response(respBody, { status: cwaResp.status, headers: cleanedHeaders })));
 
-	return c.newResponse(respBody, toContentfulStatus(cwaResp.status), cleanedHeaders);
+	return c.newResponse(respBody, toContentfulStatus(cwaResp.status), toHeaderRecord(cleanedHeaders));
 });
 
 function getDatasetId(pathname: string) {
@@ -121,6 +125,10 @@ function cleanCwaHeaders(headers: Headers, cacheStatus: string) {
 
 function toContentfulStatus(status: number): ContentfulStatusCode {
 	return status as ContentfulStatusCode;
+}
+
+function toHeaderRecord(headers: Headers) {
+	return Object.fromEntries(headers.entries());
 }
 
 export default app;
