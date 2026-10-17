@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import type { AppEnv } from '@/types';
 
 import cwaRoute from '@/routes/weather/cwa';
 import githubRoute from '@/routes/social/github';
@@ -8,7 +9,7 @@ import rickRoute from '@/routes/rick';
 import threadsRoute from '@/routes/social/threads';
 import wakatimeRoute from '@/routes/social/wakatime';
 import youtubeRoute from '@/routes/social/youtube';
-import type { AppEnv } from '@/types';
+import gaRoute from '@/routes/website/analytics';
 
 const routes = new Hono<AppEnv>();
 
@@ -20,5 +21,6 @@ routes.route('/youtube/v3', youtubeRoute);
 routes.route('/search_suggestions', googleSearchSuggestionsRoute);
 routes.route('/github', githubRoute);
 routes.route('/threads', threadsRoute);
+routes.route('/ga', gaRoute);
 
 export default routes;
