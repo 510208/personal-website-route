@@ -7,6 +7,7 @@ import googleSearchSuggestionsRoute from '@/routes/googleSearchSuggestions';
 import personalRoute from '@/routes/personal';
 import rickRoute from '@/routes/rick';
 import threadsRoute from '@/routes/social/threads';
+import instagramRoute from '@/routes/social/instagram';
 import wakatimeRoute from '@/routes/social/wakatime';
 import youtubeRoute from '@/routes/social/youtube';
 import gaRoute from '@/routes/website/analytics';
@@ -21,6 +22,7 @@ routes.route('/youtube/v3', youtubeRoute);
 routes.route('/search_suggestions', googleSearchSuggestionsRoute);
 routes.route('/github', githubRoute);
 routes.route('/threads', threadsRoute);
+routes.route('/instagram', instagramRoute);
 routes.route('/ga', gaRoute);
 
 export default routes;
