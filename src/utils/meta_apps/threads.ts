@@ -16,7 +16,7 @@ export async function refreshThreadsToken(env: Bindings) {
 
 		if (result.access_token) {
 			// 成功拿到新 Token（效期延長 60 天），寫回 KV 覆蓋舊的
-			await env.THREADS_STORE.put('LONG_LIVED_TOKEN', result.access_token);
+			await env.THREADS_STORE.put('THREADS_LONG_LIVED_TOKEN', result.access_token);
 			console.log('[Cron] Threads 長期 Token 自動刷新成功！');
 		} else {
 			console.error('[Cron] 刷新失敗，Meta 回傳錯誤:', result);

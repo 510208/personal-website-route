@@ -33,7 +33,7 @@ app.get(
 	}),
 	async (c) => {
 		try {
-			// 1. 從 Cloudflare KV 取得長期 Token
+			// DONE: 從 Cloudflare KV 取得長期 Token
 			const token = await c.env.THREADS_STORE.get('THREADS_LONG_LIVED_TOKEN');
 
 			if (!token) {
@@ -46,13 +46,13 @@ app.get(
 				);
 			}
 
-			// 2. 建立 Threads Graph API 請求
+			// DONE: 建立 Threads Graph API 請求
 			const url = new URL('https://graph.threads.net/v1.0/me/threads_insights');
 
 			url.searchParams.set('metric', 'followers_count');
 			url.searchParams.set('access_token', token);
 
-			// 3. 取得帳號洞察資料
+			// DONE: 取得帳號洞察資料
 			const response = await fetch(url);
 
 			const result = (await response.json()) as ThreadsInsightsResponse;
@@ -73,7 +73,7 @@ app.get(
 				);
 			}
 
-			// 4. 將資料回傳給客戶端
+			// DONE: 將資料回傳給客戶端
 			return c.json({
 				success: true,
 				data: result.data ?? [],
