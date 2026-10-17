@@ -31,3 +31,6 @@ remote = true
 
 [triggers]
 crons = ["0 0 1,11,21 * *"]
+
+[vars]
+CWA_ALLOWED_DATASETS = "F-D0047-073,F-D0047-093"
