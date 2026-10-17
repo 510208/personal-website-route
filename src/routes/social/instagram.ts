@@ -23,7 +23,7 @@ app.get(
 				503,
 			);
 		}
-		return c.json({ data: content });
+		return c.json(JSON.parse(content));
 	},
 );
 
