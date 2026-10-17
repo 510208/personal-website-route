@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
-import { cache } from 'hono/cache';
 
+import { cache } from '../middleware/cache.js';
 import type { AppEnv } from '../types.js';
+
+const CACHE_TTL = 900;
 
 const app = new Hono<AppEnv>();
 
@@ -28,8 +30,7 @@ interface ThreadsInsightsResponse {
 app.get(
 	'/account',
 	cache({
-		cacheName: 'threads-account',
-		cacheControl: 'max-age=900',
+		ttl: CACHE_TTL,
 	}),
 	async (c) => {
 		try {

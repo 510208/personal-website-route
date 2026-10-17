@@ -1,14 +1,13 @@
 import { Hono } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
+import { cache } from '../middleware/cache.js';
 import type { AppEnv, Bindings } from '../types.js';
 
 const CWA_API_BASE_URL = 'https://opendata.cwa.gov.tw/api/v1';
 const ROUTE_PREFIX = '/cwa/v1';
 const DATASTORE_PATH = '/rest/datastore/';
 const CACHE_TTL = 1800;
-const CACHE_CONTROL = `public, max-age=${CACHE_TTL}`;
-const CACHE_STATUS_HEADER = 'X-Cache';
 const DEFAULT_ALLOWED_DATASETS = ['F-D0047-073', 'F-D0047-093'];
 const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH']);
 const STRIPPED_HEADERS = [
@@ -20,6 +19,21 @@ const STRIPPED_HEADERS = [
 ];
 
 const app = new Hono<AppEnv>();
+
+app.use(
+	'*',
+	cache({
+		ttl: CACHE_TTL,
+		enabled: (c) => {
+			const url = new URL(c.req.url);
+			const upstreamPath = url.pathname.slice(ROUTE_PREFIX.length) || '/';
+			const datasetId = getDatasetId(upstreamPath);
+
+			return Boolean(datasetId && getAllowedDatasets(c.env).has(datasetId) && buildCwaUrl(upstreamPath, url.searchParams, c.env));
+		},
+		shouldCache: () => true,
+	}),
+);
 
 app.all('*', async (c) => {
 	const url = new URL(c.req.url);
@@ -42,16 +56,6 @@ app.all('*', async (c) => {
 		return c.text('Missing API Key', 400);
 	}
 
-	const cacheKey = new Request(c.req.url, c.req.raw);
-	const cachedResponse = await caches.default.match(cacheKey);
-	if (cachedResponse) {
-		return c.newResponse(
-			await cachedResponse.text(),
-			toContentfulStatus(cachedResponse.status),
-			toHeaderRecord(cleanCwaHeaders(cachedResponse.headers, 'HIT')),
-		);
-	}
-
 	const proxyHeaders = new Headers(c.req.raw.headers);
 	proxyHeaders.delete('host');
 
@@ -62,9 +66,7 @@ app.all('*', async (c) => {
 		body: BODY_METHODS.has(method) ? await c.req.text() : null,
 	});
 	const respBody = await cwaResp.text();
-	const cleanedHeaders = cleanCwaHeaders(cwaResp.headers, 'MISS');
-
-	c.executionCtx.waitUntil(caches.default.put(cacheKey, new Response(respBody, { status: cwaResp.status, headers: cleanedHeaders })));
+	const cleanedHeaders = cleanCwaHeaders(cwaResp.headers);
 
 	return c.newResponse(respBody, toContentfulStatus(cwaResp.status), toHeaderRecord(cleanedHeaders));
 });
@@ -110,15 +112,12 @@ function buildCwaUrl(pathname: string, searchParams: URLSearchParams, env: Bindi
 	return upstreamUrl.toString();
 }
 
-function cleanCwaHeaders(headers: Headers, cacheStatus: string) {
+function cleanCwaHeaders(headers: Headers) {
 	const cleanedHeaders = new Headers(headers);
 
 	for (const header of STRIPPED_HEADERS) {
 		cleanedHeaders.delete(header);
 	}
-
-	cleanedHeaders.set('Cache-Control', CACHE_CONTROL);
-	cleanedHeaders.set(CACHE_STATUS_HEADER, cacheStatus);
 
 	return cleanedHeaders;
 }

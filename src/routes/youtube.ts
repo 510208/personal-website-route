@@ -1,10 +1,10 @@
 import { Hono } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
+import { cache } from '../middleware/cache.js';
 import type { AppEnv } from '../types.js';
 
 const CACHE_TTL = 1800;
-const CACHE_CONTROL = `public, max-age=${CACHE_TTL}`;
 const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH']);
 const STRIPPED_HEADERS = [
 	'content-encoding',
@@ -15,6 +15,15 @@ const STRIPPED_HEADERS = [
 ];
 
 const app = new Hono<AppEnv>();
+
+app.use(
+	'*',
+	cache({
+		ttl: CACHE_TTL,
+		enabled: (c) => Boolean(c.env.YOUTUBE_DATA_API_KEY),
+		shouldCache: () => true,
+	}),
+);
 
 app.all('*', async (c) => {
 	const url = new URL(c.req.url);
@@ -30,16 +39,6 @@ app.all('*', async (c) => {
 	}
 	ytUrl.searchParams.set('key', apiKey);
 
-	const cacheKey = new Request(c.req.url, c.req.raw);
-	const cachedResponse = await caches.default.match(cacheKey);
-	if (cachedResponse) {
-		return c.newResponse(
-			await cachedResponse.text(),
-			toContentfulStatus(cachedResponse.status),
-			toHeaderRecord(cleanYouTubeHeaders(cachedResponse.headers)),
-		);
-	}
-
 	const proxyHeaders = new Headers(c.req.raw.headers);
 	proxyHeaders.delete('host');
 
@@ -52,8 +51,6 @@ app.all('*', async (c) => {
 	const respBody = await ytResp.text();
 	const cleanedHeaders = cleanYouTubeHeaders(ytResp.headers);
 
-	c.executionCtx.waitUntil(caches.default.put(cacheKey, new Response(respBody, { status: ytResp.status, headers: cleanedHeaders })));
-
 	return c.newResponse(respBody, toContentfulStatus(ytResp.status), toHeaderRecord(cleanedHeaders));
 });
 
@@ -65,7 +62,6 @@ function cleanYouTubeHeaders(headers: Headers) {
 	}
 
 	cleanedHeaders.set('Content-Type', 'application/json; charset=UTF-8');
-	cleanedHeaders.set('Cache-Control', CACHE_CONTROL);
 
 	return cleanedHeaders;
 }

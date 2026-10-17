@@ -1,14 +1,22 @@
 import { Hono } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
+import { cache } from '../middleware/cache.js';
 import type { AppEnv } from '../types.js';
 
 const CACHE_TTL = 1800;
-const CACHE_CONTROL = `public, max-age=${CACHE_TTL}`;
 const CORS_HEADERS = ['access-control-allow-origin', 'access-control-allow-methods', 'access-control-allow-headers'];
 const ROUTE_PATH = '/search_suggestions';
 
 const app = new Hono<AppEnv>();
+
+app.use(
+	'*',
+	cache({
+		ttl: CACHE_TTL,
+		enabled: (c) => Boolean(new URL(c.req.url).searchParams.get('q')),
+	}),
+);
 
 app.all('*', async (c) => {
 	const url = new URL(c.req.url);
@@ -26,15 +34,6 @@ app.all('*', async (c) => {
 	googleUrl.searchParams.set('output', 'toolbar');
 	googleUrl.searchParams.set('q', searchPath);
 
-	const cacheKey = new Request(c.req.url, c.req.raw);
-	const cachedResponse = await caches.default.match(cacheKey);
-	if (cachedResponse) {
-		return c.newResponse(await cachedResponse.text(), toContentfulStatus(cachedResponse.status), {
-			'Cache-Control': CACHE_CONTROL,
-			'Content-Type': 'application/json; charset=utf-8',
-		});
-	}
-
 	const proxyHeaders = new Headers(c.req.raw.headers);
 	proxyHeaders.delete('host');
 	const method = c.req.method || 'GET';
@@ -50,12 +49,7 @@ app.all('*', async (c) => {
 	const suggestions = parseGoogleXmlToJson(await googleResp.text());
 	const jsonResponseBody = JSON.stringify(suggestions);
 	const cleanedHeaders = stripCorsHeaders(googleResp.headers);
-	cleanedHeaders.set('Cache-Control', CACHE_CONTROL);
 	cleanedHeaders.set('Content-Type', 'application/json; charset=utf-8');
-
-	c.executionCtx.waitUntil(
-		caches.default.put(cacheKey, new Response(jsonResponseBody, { status: googleResp.status, headers: cleanedHeaders })),
-	);
 
 	return c.newResponse(jsonResponseBody, toContentfulStatus(googleResp.status), toHeaderRecord(cleanedHeaders));
 });
