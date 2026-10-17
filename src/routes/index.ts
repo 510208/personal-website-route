@@ -1,13 +1,13 @@
 import { Hono } from 'hono';
 
-import cwaRoute from '@/routes/cwa';
-import githubRoute from '@/routes/github';
+import cwaRoute from '@/routes/weather/cwa';
+import githubRoute from '@/routes/social/github';
 import googleSearchSuggestionsRoute from '@/routes/googleSearchSuggestions';
 import personalRoute from '@/routes/personal';
 import rickRoute from '@/routes/rick';
-import threadsRoute from '@/routes/threads';
-import wakatimeRoute from '@/routes/wakatime';
-import youtubeRoute from '@/routes/youtube';
+import threadsRoute from '@/routes/social/threads';
+import wakatimeRoute from '@/routes/social/wakatime';
+import youtubeRoute from '@/routes/social/youtube';
 import type { AppEnv } from '@/types';
 
 const routes = new Hono<AppEnv>();
