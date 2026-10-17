@@ -54,10 +54,7 @@ app.all('*', async (c) => {
 	cleanedHeaders.set('Content-Type', 'application/json; charset=utf-8');
 
 	c.executionCtx.waitUntil(
-		caches.default.put(
-			cacheKey,
-			new Response(jsonResponseBody, { status: googleResp.status, headers: cleanedHeaders }),
-		),
+		caches.default.put(cacheKey, new Response(jsonResponseBody, { status: googleResp.status, headers: cleanedHeaders })),
 	);
 
 	return c.newResponse(jsonResponseBody, toContentfulStatus(googleResp.status), toHeaderRecord(cleanedHeaders));

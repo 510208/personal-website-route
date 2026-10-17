@@ -55,18 +55,9 @@ app.all('*', async (c) => {
 	const cleanedHeaders = stripCorsHeaders(wakaResp.headers);
 	cleanedHeaders.set('Cache-Control', CACHE_CONTROL);
 
-	c.executionCtx.waitUntil(
-		caches.default.put(
-			cacheKey,
-			new Response(respBody, { status: wakaResp.status, headers: cleanedHeaders }),
-		),
-	);
+	c.executionCtx.waitUntil(caches.default.put(cacheKey, new Response(respBody, { status: wakaResp.status, headers: cleanedHeaders })));
 
-	return c.newResponse(
-		respBody,
-		toContentfulStatus(wakaResp.status),
-		toHeaderRecord(new Headers({ 'Cache-Control': CACHE_CONTROL })),
-	);
+	return c.newResponse(respBody, toContentfulStatus(wakaResp.status), toHeaderRecord(new Headers({ 'Cache-Control': CACHE_CONTROL })));
 });
 
 function stripCorsHeaders(headers: Headers) {

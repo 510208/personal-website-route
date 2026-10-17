@@ -52,9 +52,7 @@ app.all('*', async (c) => {
 	const respBody = await ytResp.text();
 	const cleanedHeaders = cleanYouTubeHeaders(ytResp.headers);
 
-	c.executionCtx.waitUntil(
-		caches.default.put(cacheKey, new Response(respBody, { status: ytResp.status, headers: cleanedHeaders })),
-	);
+	c.executionCtx.waitUntil(caches.default.put(cacheKey, new Response(respBody, { status: ytResp.status, headers: cleanedHeaders })));
 
 	return c.newResponse(respBody, toContentfulStatus(ytResp.status), toHeaderRecord(cleanedHeaders));
 });
