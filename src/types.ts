@@ -4,6 +4,7 @@ export type Bindings = {
 	CWA_API_KEY?: string;
 	CWA_ALLOWED_DATASETS?: string;
 	GITHUB_TOKEN?: string;
+	THREADS_STORE: KVNamespace;
 };
 
 export type AppEnv = {
