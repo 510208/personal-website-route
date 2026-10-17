@@ -1,0 +1,33 @@
+name = "personal-website-route"
+main = "src/index.ts"
+workers_dev = false
+preview_urls = false
+compatibility_date = "2025-11-02"
+
+[[routes]]
+pattern = "api.samhacker.xyz"
+zone_name = "samhacker.xyz"
+custom_domain = true
+
+[observability]
+enabled = true
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = true
+persist = true
+head_sampling_rate = 1
+
+[[kv_namespaces]]
+binding = "THREADS_STORE"
+id = "4ba3194b96644101bb5bd09bd0a86ecf"
+remote = true
+
+[triggers]
+crons = ["0 0 1,11,21 * *"]
