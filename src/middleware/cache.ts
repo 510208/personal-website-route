@@ -1,6 +1,6 @@
 import type { Context, MiddlewareHandler } from 'hono';
 
-import type { AppEnv } from '../types.js';
+import type { AppEnv } from '@/types';
 
 const CACHE_STATUS_HEADER = 'X-Cache';
 const CACHE_HIT = 'HIT';

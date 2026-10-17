@@ -1,8 +1,8 @@
-import app from './app';
-import type { AppEnv } from './types.js';
+import app from '@/app';
+import type { AppEnv } from '@/types';
 
 import { Cron } from 'kuron';
-import { refreshThreadsToken } from './utils/meta_apps/threads';
+import { refreshThreadsToken } from '@/utils/meta_apps/threads';
 
 const cron = new Cron<AppEnv>();
 

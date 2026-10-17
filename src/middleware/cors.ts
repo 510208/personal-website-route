@@ -1,7 +1,7 @@
 import type { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
-import type { AppEnv } from '../types.js';
+import type { AppEnv } from '@/types';
 
 const DEFAULT_ALLOWED_ORIGIN = 'https://samhacker.xyz';
 const ALLOWED_ORIGINS = new Set([

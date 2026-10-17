@@ -8,6 +8,9 @@
 		// See also https://aka.ms/tsconfig/module
 		"module": "esnext",
 		"target": "esnext",
+		"paths": {
+			"@/*": ["./src/*"]
+		},
 		"types": [
 			"@cloudflare/workers-types"
 		],

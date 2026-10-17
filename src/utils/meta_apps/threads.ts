@@ -1,5 +1,5 @@
 // 刷新Threads API token
-import type { Bindings } from '../../types';
+import type { Bindings } from '@/types';
 
 export async function refreshThreadsToken(env: Bindings) {
 	try {

@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
-import { cache } from '../middleware/cache.js';
-import type { AppEnv, Bindings } from '../types.js';
+import { cache } from '@/middleware/cache';
+import type { AppEnv, Bindings } from '@/types';
 
 const CWA_API_BASE_URL = 'https://opendata.cwa.gov.tw/api/v1';
 const ROUTE_PREFIX = '/cwa/v1';

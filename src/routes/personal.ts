@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 
-import { getPersonalInfo } from '../utils/personalInfo.js';
-import type { AppEnv } from '../types.js';
+import type { AppEnv } from '@/types';
+import { getPersonalInfo } from '@/utils/personalInfo';
 
 const app = new Hono<AppEnv>();
 

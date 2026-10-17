@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 
-import { cache } from '../middleware/cache.js';
-import type { AppEnv } from '../types';
+import { cache } from '@/middleware/cache';
+import type { AppEnv } from '@/types';
 
 const CACHE_TTL = 3600; // 快取 1 小時（秒）
 

@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 
-import type { AppEnv } from '../types.js';
+import type { AppEnv } from '@/types';
 
 const RICK_ROLL_URL = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
 

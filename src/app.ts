@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 
-import { registerCors } from './middleware/cors.js';
-import routes from './routes/index.js';
-import type { AppEnv } from './types.js';
+import { registerCors } from '@/middleware/cors';
+import routes from '@/routes';
+import type { AppEnv } from '@/types';
 
 const app = new Hono<AppEnv>();
 

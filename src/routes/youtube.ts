@@ -1,8 +1,8 @@
 import { Hono } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
-import { cache } from '../middleware/cache.js';
-import type { AppEnv } from '../types.js';
+import { cache } from '@/middleware/cache';
+import type { AppEnv } from '@/types';
 
 const CACHE_TTL = 1800;
 const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH']);
