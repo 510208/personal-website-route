@@ -11,8 +11,8 @@ mode = "smart"
 pattern = "api.samhacker.xyz"
 zone_name = "samhacker.xyz"
 custom_domain = true
-enabled = true
-previews_enabled = false
+# enabled = true
+# previews_enabled = false
 
 [observability]
 enabled = true
