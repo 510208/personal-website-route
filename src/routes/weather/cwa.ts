@@ -31,7 +31,18 @@ app.use(
 
 			return Boolean(datasetId && getAllowedDatasets(c.env).has(datasetId) && buildCwaUrl(upstreamPath, url.searchParams, c.env));
 		},
-		shouldCache: () => true,
+		shouldCache: async (response) => {
+			// 狀態碼必須是 200
+			if (!response.ok) return false;
+
+			// 檢查 Content-Type 是否為 JSON (F5 阻擋網頁是 text/html)
+			const contentType = response.headers.get('Content-Type') || '';
+			if (!contentType.includes('application/json')) {
+				return false;
+			}
+
+			return true;
+		},
 	}),
 );
 
