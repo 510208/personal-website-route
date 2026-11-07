@@ -1,11 +1,18 @@
 import { Hono } from 'hono';
-import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
 import { cache } from '@/middleware/cache';
 import type { AppEnv } from '@/types';
 
+// Every allowed request must specify its method, full route path and exact query parameters here.
+const ALLOWED_ENDPOINTS = [
+	{
+		method: 'GET',
+		path: '/youtube/v3/channels',
+		query: { id: 'UC6orwHdQNVzwHsA6M7HYD9g', part: 'statistics,id' },
+	},
+];
+
 const CACHE_TTL = 1800;
-const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH']);
 const STRIPPED_HEADERS = [
 	'content-encoding',
 	'content-length',
@@ -14,64 +21,90 @@ const STRIPPED_HEADERS = [
 	'access-control-allow-headers',
 ];
 
-const app = new Hono<AppEnv>();
+const app = new Hono<AppEnv & { Variables: { endpoint: (typeof ALLOWED_ENDPOINTS)[number] } }>();
 
-app.use(
-	'*',
-	cache({
-		ttl: CACHE_TTL,
-		enabled: (c) => Boolean(c.env.YOUTUBE_DATA_API_KEY),
-		shouldCache: () => true,
-	}),
-);
-
-app.all('*', async (c) => {
+// Validate before cache lookup so cached responses cannot bypass the allowlist.
+app.use('*', async (c, next) => {
 	const url = new URL(c.req.url);
-	const apiKey = c.env.YOUTUBE_DATA_API_KEY || '';
-	if (!apiKey) {
+
+	const endpoints = ALLOWED_ENDPOINTS.filter((endpoint) => endpoint.path === url.pathname);
+	if (endpoints.length === 0) {
+		return c.text('Not Found', 404);
+	}
+
+	const methodEndpoints = endpoints.filter((endpoint) => endpoint.method === c.req.method);
+	if (methodEndpoints.length === 0) {
+		c.header('Allow', [...new Set(endpoints.map((item) => item.method))].join(', '));
+		return c.text('Method Not Allowed', 405);
+	}
+
+	const endpoint = methodEndpoints.find((item) => {
+		const query = Object.entries(item.query);
+		return url.searchParams.size === query.length && query.every(([key, value]) => url.searchParams.get(key) === value);
+	});
+
+	if (!endpoint) {
+		return c.text('Query parameters are not allowed', 400);
+	}
+
+	if (!c.env.YOUTUBE_DATA_API_KEY) {
 		return c.text('Missing API Key', 400);
 	}
 
-	const ytPath = url.pathname.replace(/^\/youtube\/v3/, '') || '/';
-	const ytUrl = new URL(`https://www.googleapis.com/youtube/v3${ytPath}`);
-	for (const [key, value] of url.searchParams.entries()) {
-		ytUrl.searchParams.append(key, value);
-	}
-	ytUrl.searchParams.set('key', apiKey);
-
-	const proxyHeaders = new Headers(c.req.raw.headers);
-	proxyHeaders.delete('host');
-
-	const method = c.req.method || 'GET';
-	const ytResp = await fetch(ytUrl, {
-		method,
-		headers: proxyHeaders,
-		body: BODY_METHODS.has(method) ? await c.req.text() : null,
-	});
-	const respBody = await ytResp.text();
-	const cleanedHeaders = cleanYouTubeHeaders(ytResp.headers);
-
-	return c.newResponse(respBody, toContentfulStatus(ytResp.status), toHeaderRecord(cleanedHeaders));
+	c.set('endpoint', endpoint);
+	await next();
 });
 
-function cleanYouTubeHeaders(headers: Headers) {
-	const cleanedHeaders = new Headers(headers);
+app.use('*', cache({ ttl: CACHE_TTL }));
 
-	for (const header of STRIPPED_HEADERS) {
-		cleanedHeaders.delete(header);
+app.all('*', async (c) => {
+	// Build the upstream URL from the allowlist rather than forwarding client input.
+	const endpoint = c.get('endpoint');
+	const url = new URL(endpoint.path, 'https://www.googleapis.com');
+	url.search = new URLSearchParams(endpoint.query).toString();
+	url.searchParams.set('key', c.env.YOUTUBE_DATA_API_KEY);
+
+	let response: Response;
+	try {
+		response = await fetch(url, { method: endpoint.method, redirect: 'error' });
+	} catch {
+		return c.text('YouTube upstream request failed', 502);
 	}
 
-	cleanedHeaders.set('Content-Type', 'application/json; charset=UTF-8');
+	if (!response.ok) {
+		const body = await response.text();
+		const headers = new Headers(response.headers);
 
-	return cleanedHeaders;
-}
+		for (const header of STRIPPED_HEADERS) {
+			headers.delete(header);
+		}
 
-function toContentfulStatus(status: number): ContentfulStatusCode {
-	return status as ContentfulStatusCode;
-}
+		return new Response(body, {
+			status: response.status,
+			headers,
+		});
+	}
 
-function toHeaderRecord(headers: Headers) {
-	return Object.fromEntries(headers.entries());
-}
+	let body: unknown;
+
+	try {
+		body = await response.json();
+	} catch {
+		return c.text('YouTube returned an invalid JSON response', 502);
+	}
+
+	const headers = new Headers(response.headers);
+
+	for (const header of STRIPPED_HEADERS) {
+		headers.delete(header);
+	}
+
+	headers.set('Content-Type', 'application/json; charset=UTF-8');
+
+	return new Response(JSON.stringify(body), {
+		status: response.status,
+		headers,
+	});
+});
 
 export default app;
