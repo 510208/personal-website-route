@@ -1,83 +1,60 @@
 import { Hono } from 'hono';
-import type { ContentfulStatusCode } from 'hono/utils/http-status';
 
 import { cache } from '@/middleware/cache';
 import type { AppEnv } from '@/types';
 
-const CACHE_TTL = 1800;
-const BODY_METHODS = new Set(['POST', 'PUT', 'PATCH']);
-const CORS_HEADERS = ['access-control-allow-origin', 'access-control-allow-methods', 'access-control-allow-headers'];
+const WAKATIME_URL = 'https://wakatime.com/api/v1/users/SamHacker/all_time_since_today';
 const ROUTE_PATH = '/wakatime_sh';
+const CACHE_TTL = 1800;
+const STRIPPED_HEADERS = [
+	'content-encoding',
+	'content-length',
+	'access-control-allow-origin',
+	'access-control-allow-methods',
+	'access-control-allow-headers',
+];
 
 const app = new Hono<AppEnv>();
 
-app.use(
-	'*',
-	cache({
-		ttl: CACHE_TTL,
-		enabled: (c) => {
-			const url = new URL(c.req.url);
-			return Boolean(url.searchParams.get('path') && c.env.WAKATIME_API_KEY);
-		},
-		shouldCache: () => true,
-	}),
-);
-
-app.all('*', async (c) => {
+// Check restrictions before cache lookup, including entries cached by older versions.
+app.use('*', async (c, next) => {
 	const url = new URL(c.req.url);
 	if (url.pathname !== ROUTE_PATH) {
 		return c.text('Not Found', 404);
 	}
-
-	const wakaPath = url.searchParams.get('path');
-	if (!wakaPath) {
-		return c.text("Missing 'path' parameter", 400);
+	if (c.req.method !== 'GET') {
+		c.header('Allow', 'GET');
+		return c.text('Method Not Allowed', 405);
 	}
-
-	const apiKey = c.env.WAKATIME_API_KEY || '';
-	if (!apiKey) {
+	if (url.searchParams.size > 0) {
+		return c.text('Query parameters are not supported', 400);
+	}
+	if (!c.env.WAKATIME_API_KEY) {
 		return c.text('Missing API Key', 400);
 	}
-
-	const wakaUrl = new URL(wakaPath, 'https://wakatime.com');
-	for (const [key, value] of url.searchParams.entries()) {
-		if (key !== 'path') {
-			wakaUrl.searchParams.append(key, value);
-		}
-	}
-
-	const proxyHeaders = new Headers(c.req.raw.headers);
-	proxyHeaders.delete('host');
-	proxyHeaders.set('Authorization', `Basic ${btoa(apiKey)}`);
-
-	const method = c.req.method || 'GET';
-	const wakaResp = await fetch(wakaUrl, {
-		method,
-		headers: proxyHeaders,
-		body: BODY_METHODS.has(method) ? await c.req.text() : null,
-	});
-	const respBody = await wakaResp.text();
-	const cleanedHeaders = stripCorsHeaders(wakaResp.headers);
-
-	return c.newResponse(respBody, toContentfulStatus(wakaResp.status), toHeaderRecord(cleanedHeaders));
+	await next();
 });
 
-function stripCorsHeaders(headers: Headers) {
-	const cleanedHeaders = new Headers(headers);
+app.use('*', cache({ ttl: CACHE_TTL }));
 
-	for (const header of CORS_HEADERS) {
-		cleanedHeaders.delete(header);
+app.get('*', async (c) => {
+	let response: Response;
+	try {
+		response = await fetch(WAKATIME_URL, {
+			method: 'GET',
+			headers: { Authorization: `Basic ${btoa(c.env.WAKATIME_API_KEY)}` },
+			redirect: 'error',
+		});
+	} catch {
+		return c.text('WakaTime upstream request failed', 502);
 	}
 
-	return cleanedHeaders;
-}
-
-function toContentfulStatus(status: number): ContentfulStatusCode {
-	return status as ContentfulStatusCode;
-}
-
-function toHeaderRecord(headers: Headers) {
-	return Object.fromEntries(headers.entries());
-}
+	const body = await response.text();
+	const headers = new Headers(response.headers);
+	for (const header of STRIPPED_HEADERS) {
+		headers.delete(header);
+	}
+	return new Response(body, { status: response.status, headers });
+});
 
 export default app;
