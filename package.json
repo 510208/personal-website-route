@@ -7,13 +7,15 @@
 		"deploy": "wrangler deploy",
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
-		"typecheck": "tsc --noEmit"
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit && tsc --noEmit -p tests/tsconfig.json"
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^5.20261004.1",
 		"@types/node": "^26.6.4",
 		"tsx": "^4.23.15",
 		"typescript": "^7.0.2",
+		"vitest": "^5.1.0",
 		"wrangler": "^4.147.0"
 	},
 	"packageManager": "pnpm@10.3.0",
