@@ -10,8 +10,8 @@
 - 路由設計：
   - `/` 回傳個人資訊（JSON 格式）。
   - `/cwa/v1/*` 代理中華民國中央氣象署 OpenData API，使用 `src/routes/cwa.ts`，支援資料集白名單與 30 分鐘快取。
-  - `/wakatime_sh` 代理 WakaTime API，使用 `src/routes/wakatime.ts`，支援 30 分鐘快取。
-  - `/youtube/v3/*` 代理 YouTube Data API，使用 `src/routes/youtube.ts`，支援 30 分鐘快取。
+  - `GET /wakatime_sh` 固定回傳 WakaTime `/api/v1/users/SamHacker/all_time_since_today` 的結果，不接受查詢參數，支援 30 分鐘快取。
+  - `GET /youtube/v3/channels?id=UC6orwHdQNVzwHsA6M7HYD9g&part=statistics,id` 回傳指定頻道統計，支援 30 分鐘快取。
   - `/search_suggestions` 代理 Google 搜尋建議 API，使用 `src/routes/googleSearchSuggestions.ts`，支援 30 分鐘快取。
   - `/rick` 重導向至 Rick Roll。
 - 路由組合：`src/routes/index.ts` 使用 Hono 的 `app.route()` 掛載各子路由。新增 API 時，在 `src/routes/` 建立 Hono app 並於此處掛載。
@@ -21,6 +21,8 @@
 
 - 安裝依賴：`pnpm install`
 - 開發啟動：`pnpm dev`（本地 8787 port）
+- 自動測試：`pnpm test`（Vitest）
+- 型別檢查：`pnpm typecheck`
 - 部署：`pnpm deploy`（wrangler 部署至 Cloudflare）
 - 主要設定檔：
   - `wrangler.jsonc`：Worker 設定、路由、觀測性（logs/traces）
@@ -29,7 +31,8 @@
 ## 重要慣例
 
 - 各 route module 匯出 Hono app，以 `app.get()`、`app.all()` 等方法定義 endpoint，並由 `src/routes/index.ts` 組合。
-- WakaTime Proxy 需從 query string 取得 `path` 參數，並自動附加 Authorization header。
+- WakaTime 固定上游網址定義於 `src/routes/social/wakatime.ts`，由伺服器附加 Authorization header；舊 `path` 參數會被拒絕。
+- YouTube 白名單定義於 `src/routes/social/youtube.ts` 頂端的 `ALLOWED_ENDPOINTS`，方法、路徑與查詢參數必須符合設定；額外或重複參數會被拒絕。
 - CWA Proxy 會從 `/cwa/v1/rest/datastore/{datasetId}` 讀取資料集編號並比對白名單；若請求未帶 `Authorization` query，會自動附加 `CWA_API_KEY`。
 - 快取使用 `caches.default`，快取 key 為 request.url，快取時間由各 route module 控制。
 - 各 route handler 使用 Hono context 回傳 JSON、文字或代理回應；個人資訊物件位於 `src/utils/personalInfo.ts`。
@@ -42,7 +45,7 @@
 
 ## 其他注意事項
 
-- 本專案無測試檔案，請以本地 dev server 驗證 API 行為。
+- `tests/wakatime.test.ts` 與 `tests/youtube.test.ts` 驗證端點限制、上游回應及快取；`tests/helpers/proxy.ts` 提供共用 fetch 與 Cache API 模擬，不需真實金鑰或外部網路。
 - 請遵循 Prettier 格式化（見 `.prettierrc`）。
 - 主要開發語言為 TypeScript，新增程式碼請使用 `.ts` 檔案並維持嚴格型別檢查。
 
