@@ -8,6 +8,7 @@
 		"dev": "wrangler dev",
 		"start": "wrangler dev",
 		"test": "vitest run",
+		"test:ui": "vitest run --ui",
 		"typecheck": "tsc --noEmit && tsc --noEmit -p tests/tsconfig.json"
 	},
 	"devDependencies": {
