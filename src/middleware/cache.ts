@@ -50,16 +50,19 @@ export function cache(options: CacheOptions): MiddlewareHandler<AppEnv> {
 
 		await next();
 
-		c.header('Cache-Control', cacheControl);
 		c.header(CACHE_STATUS_HEADER, CACHE_MISS);
 
 		const shouldCache = await (options.shouldCache ?? cacheSuccessfulResponses)(c.res, c);
+
 		if (!shouldCache) {
 			return;
 		}
 
+		c.header('Cache-Control', cacheControl);
+
 		const responseToCache = c.res.clone();
 		responseToCache.headers.delete(CACHE_STATUS_HEADER);
+
 		for (const header of options.stripHeaders ?? []) {
 			responseToCache.headers.delete(header);
 		}
