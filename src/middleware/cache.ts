@@ -41,11 +41,7 @@ export function cache(options: CacheOptions): MiddlewareHandler<AppEnv> {
 			headers.set('Cache-Control', cacheControl);
 			headers.set(CACHE_STATUS_HEADER, CACHE_HIT);
 
-			return new Response(cachedResponse.body, {
-				status: cachedResponse.status,
-				statusText: cachedResponse.statusText,
-				headers,
-			});
+			return stripCorsHeaders(cachedResponse);
 		}
 
 		await next();
@@ -60,7 +56,7 @@ export function cache(options: CacheOptions): MiddlewareHandler<AppEnv> {
 
 		c.header('Cache-Control', cacheControl);
 
-		const responseToCache = c.res.clone();
+		const responseToCache = stripCorsHeaders(c.res.clone());
 		responseToCache.headers.delete(CACHE_STATUS_HEADER);
 
 		for (const header of options.stripHeaders ?? []) {
@@ -81,4 +77,37 @@ function createDefaultCacheKey(c: Context<AppEnv>) {
 
 function cacheSuccessfulResponses(response: Response) {
 	return response.ok;
+}
+
+function stripCorsHeaders(response: Response): Response {
+	const headers = new Headers(response.headers);
+
+	// Remove all CORS headers from cached responses.
+	for (const name of [...headers.keys()]) {
+		if (name.toLowerCase().startsWith('access-control-')) {
+			headers.delete(name);
+		}
+	}
+
+	// Remove Origin from Vary to avoid duplicated Vary: Origin.
+	const vary = headers.get('Vary');
+
+	if (vary) {
+		const values = vary
+			.split(',')
+			.map((value) => value.trim())
+			.filter((value) => value.toLowerCase() !== 'origin');
+
+		if (values.length > 0) {
+			headers.set('Vary', values.join(', '));
+		} else {
+			headers.delete('Vary');
+		}
+	}
+
+	return new Response(response.body, {
+		status: response.status,
+		statusText: response.statusText,
+		headers,
+	});
 }

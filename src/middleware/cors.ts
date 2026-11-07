@@ -3,11 +3,12 @@ import { cors } from 'hono/cors';
 
 import type { AppEnv } from '@/types';
 
-const DEFAULT_ALLOWED_ORIGIN = 'https://samhacker.xyz';
 const ALLOWED_ORIGINS = new Set([
-	DEFAULT_ALLOWED_ORIGIN,
+	'https://samhacker.xyz',
 	'https://510208.github.io',
 	'https://homepage.samhacker.xyz',
+
+	// Development origins
 	'http://localhost:5173',
 	'http://localhost:5174',
 	'http://localhost:4173',
@@ -17,38 +18,28 @@ const ALLOWED_ORIGINS = new Set([
 	'http://127.0.0.1:4173',
 	'http://127.0.0.1:4174',
 ]);
-const LOCALHOST_ORIGIN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
 const ALLOW_METHODS = ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'];
 const ALLOW_HEADERS = ['Content-Type', 'Authorization'];
 
-export function registerCors(app: Hono<AppEnv>) {
-	app.use('*', async (c, next) => {
-		await next();
-
-		c.header('Access-Control-Allow-Methods', ALLOW_METHODS.join(', '));
-		c.header('Access-Control-Allow-Headers', ALLOW_HEADERS.join(', '));
-		c.header('Vary', 'Origin');
-	});
-
-	app.use(
-		'*',
-		cors({
-			origin: resolveAllowedOrigin,
-			allowMethods: ALLOW_METHODS,
-			allowHeaders: ALLOW_HEADERS,
-		}),
-	);
+function isAllowedOrigin(origin: string | undefined): origin is string {
+	return !!origin && ALLOWED_ORIGINS.has(origin);
 }
 
-function resolveAllowedOrigin(origin: string | undefined) {
-	if (!origin) {
-		return DEFAULT_ALLOWED_ORIGIN;
-	}
+export function registerCors(app: Hono<AppEnv>) {
+	app.use('*', async (c, next) => {
+		const origin = c.req.header('Origin');
 
-	if (ALLOWED_ORIGINS.has(origin) || LOCALHOST_ORIGIN.test(origin) || origin === 'null') {
-		return origin;
-	}
+		// 不符合白名單時，不套用 CORS middleware。
+		// 瀏覽器將無法透過 CORS 讀取回應。
+		if (!isAllowedOrigin(origin)) {
+			return next();
+		}
 
-	return DEFAULT_ALLOWED_ORIGIN;
+		return cors({
+			origin,
+			allowMethods: ALLOW_METHODS,
+			allowHeaders: ALLOW_HEADERS,
+		})(c, next);
+	});
 }
