@@ -166,3 +166,4 @@ dist
 !.env.example
 .wrangler/
 wrangler.jsonc
+.commitsage/translations.json
