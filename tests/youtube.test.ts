@@ -116,7 +116,11 @@ describe('YouTube endpoint allowlist', () => {
 				headers: { 'Access-Control-Allow-Origin': '*', 'Content-Length': '999', 'Content-Encoding': 'gzip' },
 			}),
 		);
-		const response = await context.request(REQUEST_PATH);
+		const response = await context.request(REQUEST_PATH, {
+			headers: {
+				Origin: 'https://samhacker.xyz',
+			},
+		});
 
 		expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://samhacker.xyz');
 		expect(response.headers.get('Content-Type')).toBe('application/json; charset=UTF-8');

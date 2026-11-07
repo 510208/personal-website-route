@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 
 import { cache } from '@/middleware/cache';
 import type { AppEnv } from '@/types';
+import { sanitizeUpstreamHeaders } from '@/utils/response';
 
 // Every allowed request must specify its method, full route path and exact query parameters here.
 const ALLOWED_ENDPOINTS = [
@@ -93,11 +94,7 @@ app.all('*', async (c) => {
 		return c.text('YouTube returned an invalid JSON response', 502);
 	}
 
-	const headers = new Headers(response.headers);
-
-	for (const header of STRIPPED_HEADERS) {
-		headers.delete(header);
-	}
+	const headers = sanitizeUpstreamHeaders(response.headers);
 
 	headers.set('Content-Type', 'application/json; charset=UTF-8');
 

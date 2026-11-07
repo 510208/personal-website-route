@@ -85,11 +85,18 @@ describe('WakaTime fixed endpoint', () => {
 
 	it('keeps local CORS headers and removes stale body metadata', async () => {
 		context.upstream.mockResolvedValueOnce(
-			Response.json({ data: 'result' }, {
-				headers: { 'Access-Control-Allow-Origin': 'https://wakatime.com', 'Content-Length': '999', 'Content-Encoding': 'gzip' },
-			}),
+			Response.json(
+				{ data: 'result' },
+				{
+					headers: { 'Access-Control-Allow-Origin': 'https://wakatime.com', 'Content-Length': '999', 'Content-Encoding': 'gzip' },
+				},
+			),
 		);
-		const response = await context.request(ROUTE);
+		const response = await context.request(ROUTE, {
+			headers: {
+				Origin: 'https://samhacker.xyz',
+			},
+		});
 
 		expect(response.headers.get('Access-Control-Allow-Origin')).toBe('https://samhacker.xyz');
 		expect(response.headers.has('Content-Length')).toBe(false);
