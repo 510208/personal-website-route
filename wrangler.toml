@@ -38,4 +38,6 @@ remote = true
 crons = ["0 0 1,11,21 * *"]
 
 [vars]
+UPTIME_KUMA_URL = "https://up.samhacker.xyz"
+UPTIME_KUMA_STATUS_PAGE = 'main'
 CWA_ALLOWED_DATASETS = "F-D0047-073,F-D0047-093"

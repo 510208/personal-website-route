@@ -11,6 +11,7 @@ import instagramRoute from '@/routes/social/instagram';
 import wakatimeRoute from '@/routes/social/wakatime';
 import youtubeRoute from '@/routes/social/youtube';
 import gaRoute from '@/routes/website/analytics';
+import uptimeKumaRoute from '@/routes/uptimeKuma';
 
 const routes = new Hono<AppEnv>();
 
@@ -24,5 +25,6 @@ routes.route('/github', githubRoute);
 routes.route('/threads', threadsRoute);
 routes.route('/instagram', instagramRoute);
 routes.route('/ga', gaRoute);
+routes.route('/uptime-kuma', uptimeKumaRoute);
 
 export default routes;

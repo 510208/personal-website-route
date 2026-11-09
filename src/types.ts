@@ -8,6 +8,9 @@ export type Bindings = {
 	GA_CLIENT_EMAIL: string;
 	GA_PRIVATE_KEY: string;
 	APIFY_API_KEY: string;
+	UPTIME_KUMA_URL: string;
+	UPTIME_KUMA_STATUS_PAGE: string;
+	UPTIME_KUMA_API_TOKEN: string;
 	THREADS_STORE: KVNamespace;
 };
 
